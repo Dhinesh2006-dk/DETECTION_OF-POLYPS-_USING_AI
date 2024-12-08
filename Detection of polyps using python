@@ -1,0 +1,73 @@
+import cv2
+import numpy as np
+import matplotlib.pyplot as plt
+
+def draw_bounding_boxes(image_path, predictions, bounding_boxes):
+    image = cv2.imread(image_path)
+    for box, pred in zip(bounding_boxes, predictions):
+        if pred > 0.5:  # Assuming binary classification for simplicity
+            x, y, w, h = box
+            cv2.rectangle(image, (x, y), (x+w, y+h), (0, 255, 0), 2)
+            cv2.putText(image, 'Polyp', (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 
+                        0.9, (0, 255, 0), 2)
+    
+    plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+    plt.title('Detected Polyps')
+    plt.show()
+
+def calculate_size_and_diameter(bounding_boxes):
+    sizes = []
+    diameters = []
+    for box in bounding_boxes:
+        x, y, w, h = box
+        size = w * h
+        diameter = np.sqrt(w**2 + h**2)
+        sizes.append(size)
+        diameters.append(diameter)
+    return sizes, diameters
+
+def check_infections(predictions, infection_model):
+    infections = []
+    for pred in predictions:
+        # Example logic for infection check (needs a proper model)
+        if infection_model is not None:
+            infection_prediction = infection_model.predict(np.array([pred]))
+            infections.append(infection_prediction)
+        else:
+            infections.append(0)  # No infection prediction if model is not available
+    return infections
+
+def determine_cure_method(stage):
+    if stage == 'early':
+        return 'Medicine'
+    elif stage == 'advanced':
+        return 'Surgery'
+    else:
+        return 'Consult a Specialist'
+
+def generate_report(image_path, predictions, bounding_boxes, infection_model):
+    sizes, diameters = calculate_size_and_diameter(bounding_boxes)
+    infections = check_infections(predictions, infection_model)
+    
+    # Draw bounding boxes on the image
+    draw_bounding_boxes(image_path, predictions, bounding_boxes)
+    
+    for i, (box, size, diameter, infection) in enumerate(zip(bounding_boxes, sizes, 
+                                                               diameters, infections)):
+        x, y, w, h = box
+        print(f"Polyp {i+1}:")
+        print(f" Position: x={x}, y={y}")
+        print(f" Size (Area): {size}")
+        print(f" Diameter: {diameter}")
+        print(f" Infection: {'Yes' if infection > 0.5 else 'No'}")
+        
+        # Assuming stage determination from size or another model
+        stage = 'early' if size < 1000 else 'advanced' 
+        print(f" Stage: {stage}")
+        print(f" Cure Method: {determine_cure_method(stage)}")
+
+# Example usage
+bounding_boxes = [(50, 50, 100, 100)]  # Example bounding boxes
+predictions = [0.8]  # Example predictions
+infection_model = None  # Replace with your infection detection model
+generate_report('path/to/test_image.jpg', predictions, bounding_boxes, infection_model)
